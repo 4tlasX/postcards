@@ -76,7 +76,6 @@ export function LinkedItems({
 
   return (
     <div className="linked-items">
-      <span className="linked-items-label">{label}</span>
       <div className="linked-items-list">
         {items.map((item) => (
           <div key={item.id} className={`linked-item ${item.isCompleted ? 'completed' : ''}`}>

@@ -181,7 +181,7 @@ export function EditablePostCard({
 
   // Filter metadata for display
   const displayMetadata = Object.entries(postMetadata).filter(
-    ([key]) => !key.startsWith('_') && !isSpecializedField(key, taxonomy?.name)
+    ([key]) => !key.startsWith('_') && key !== 'sortOrder' && !isSpecializedField(key, taxonomy?.name)
   );
 
   return (
@@ -426,14 +426,13 @@ function SpecializedMetadataDisplay({
         : [];
       return (
         <div className="specialized-metadata task-metadata">
-          {Boolean(metadata.isCompleted) && <span className="status-badge completed">Completed</span>}
-          {Boolean(metadata.isInProgress) && <span className="status-badge in-progress">In Progress</span>}
-          {Boolean(metadata.isAutoMigrating) && <span className="status-badge auto-migrate">Auto-migrate</span>}
+          {Boolean(metadata.isCompleted) && <span className="metadata-detail">Completed</span>}
+          {Boolean(metadata.isInProgress) && <span className="metadata-detail">In Progress</span>}
+          {Boolean(metadata.isAutoMigrating) && <span className="metadata-detail">Auto-migrate</span>}
           {linkedMilestones.length > 0 && (
             <div className="linked-posts">
-              <span className="linked-posts-label">Milestones:</span>
-              {linkedMilestones.map((m) => (
-                <span key={m.id} className="linked-post-badge">{m.content.length > 40 ? m.content.slice(0, 40) + '…' : m.content}</span>
+                            {linkedMilestones.map((m) => (
+                <span key={m.id} className="metadata-detail">{m.content.length > 40 ? m.content.slice(0, 40) + '…' : m.content}</span>
               ))}
             </div>
           )}
@@ -445,10 +444,10 @@ function SpecializedMetadataDisplay({
       const relatedMilestones = milestonesForGoal?.[postId] || [];
       return (
         <div className="specialized-metadata goal-metadata">
-          {Boolean(metadata.type) && <span className="status-badge">{formatLabel(String(metadata.type))}</span>}
-          {Boolean(metadata.status) && <span className={`status-badge ${String(metadata.status)}`}>{formatLabel(String(metadata.status))}</span>}
+          {Boolean(metadata.type) && <span className="metadata-detail">{formatLabel(String(metadata.type))}</span>}
+          {Boolean(metadata.status) && <span className="metadata-detail">{formatLabel(String(metadata.status))}</span>}
           {Boolean(metadata.targetDate) && (
-            <span className="metadata-detail">Target: {formatDateValue(String(metadata.targetDate))}</span>
+            <span className="metadata-detail">{formatDateValue(String(metadata.targetDate))}</span>
           )}
           {relatedMilestones.length > 0 && (
             <LinkedItems
@@ -476,15 +475,14 @@ function SpecializedMetadataDisplay({
       const relatedTasks = tasksForMilestone?.[postId] || [];
       return (
         <div className="specialized-metadata milestone-metadata">
-          {Boolean(metadata.isCompleted) && <span className="status-badge completed">Completed</span>}
+          {Boolean(metadata.isCompleted) && <span className="metadata-detail">Completed</span>}
           {Boolean(metadata.completedAt) && (
-            <span className="metadata-detail">Completed on {formatDateValue(String(metadata.completedAt))}</span>
+            <span className="metadata-detail">{formatDateValue(String(metadata.completedAt))}</span>
           )}
           {linkedGoals.length > 0 && (
             <div className="linked-posts">
-              <span className="linked-posts-label">Goals:</span>
-              {linkedGoals.map((g) => (
-                <span key={g.id} className="linked-post-badge">{g.content.length > 40 ? g.content.slice(0, 40) + '…' : g.content}</span>
+                            {linkedGoals.map((g) => (
+                <span key={g.id} className="metadata-detail">{g.content.length > 40 ? g.content.slice(0, 40) + '…' : g.content}</span>
               ))}
             </div>
           )}
@@ -517,7 +515,7 @@ function SpecializedMetadataDisplay({
           {Boolean(metadata.address) && <span className="metadata-detail">{String(metadata.address)}</span>}
           {Boolean(metadata.phone) && <span className="metadata-detail">{String(metadata.phone)}</span>}
           {name === 'meeting' && Boolean(metadata.topic) && (
-            <span className="metadata-detail">Topic: {String(metadata.topic)}</span>
+            <span className="metadata-detail">{String(metadata.topic)}</span>
           )}
           {name === 'meeting' && Boolean(metadata.attendees) && (
             <span className="metadata-detail">{String(metadata.attendees)}</span>
@@ -529,8 +527,8 @@ function SpecializedMetadataDisplay({
     case 'symptom':
       return (
         <div className="specialized-metadata symptom-metadata">
-          <span className="severity-badge" data-severity={String(metadata.severity || 5)}>
-            Severity: {String(metadata.severity || 5)}/10
+          <span className="metadata-detail">
+            {String(metadata.severity || 5)}/10
           </span>
           {Boolean(metadata.occurredAt) && <span className="metadata-detail">at {formatTimeValue(String(metadata.occurredAt))}</span>}
           {Boolean(metadata.duration) && <span className="metadata-detail">{String(metadata.duration)} minutes</span>}
@@ -541,7 +539,7 @@ function SpecializedMetadataDisplay({
     case 'food':
       return (
         <div className="specialized-metadata food-metadata">
-          <span className="status-badge">{formatLabel(String(metadata.mealType || ''))}</span>
+          <span className="metadata-detail">{formatLabel(String(metadata.mealType || ''))}</span>
           {Boolean(metadata.consumedAt) && <span className="metadata-detail">at {formatTimeValue(String(metadata.consumedAt))}</span>}
           {Boolean(metadata.ingredients) && <span className="metadata-detail">{String(metadata.ingredients)}</span>}
           {Boolean(metadata.calories) && <span className="metadata-detail">{String(metadata.calories)} cal</span>}
@@ -553,12 +551,12 @@ function SpecializedMetadataDisplay({
       return (
         <div className="specialized-metadata medication-metadata">
           {Boolean(metadata.dosage) && <span className="metadata-detail">{String(metadata.dosage)}</span>}
-          <span className="status-badge">{formatLabel(String(metadata.frequency || ''))}</span>
-          {Boolean(metadata.startDate) && <span className="metadata-detail">Started: {formatDateValue(String(metadata.startDate))}</span>}
+          <span className="metadata-detail">{formatLabel(String(metadata.frequency || ''))}</span>
+          {Boolean(metadata.startDate) && <span className="metadata-detail">{formatDateValue(String(metadata.startDate))}</span>}
           {Boolean(metadata.scheduleTimes) && Array.isArray(metadata.scheduleTimes) && metadata.scheduleTimes.length > 0 && (
-            <span className="metadata-detail">Schedule: {(metadata.scheduleTimes as string[]).map(formatTimeValue).join(', ')}</span>
+            <span className="metadata-detail">{(metadata.scheduleTimes as string[]).map(formatTimeValue).join(', ')}</span>
           )}
-          {Boolean(metadata.isActive) && <span className="status-badge active">Active</span>}
+          {Boolean(metadata.isActive) && <span className="metadata-detail">Active</span>}
           {Boolean(metadata.notes) && <span className="metadata-detail notes">{String(metadata.notes)}</span>}
         </div>
       );
@@ -566,13 +564,13 @@ function SpecializedMetadataDisplay({
     case 'exercise':
       return (
         <div className="specialized-metadata exercise-metadata">
-          <span className="status-badge">{formatLabel(String(metadata.type || ''))}</span>
+          <span className="metadata-detail">{formatLabel(String(metadata.type || ''))}</span>
           {metadata.type === 'other' && Boolean(metadata.otherType) && (
             <span className="metadata-detail">({String(metadata.otherType)})</span>
           )}
           {Boolean(metadata.performedAt) && <span className="metadata-detail">at {formatTimeValue(String(metadata.performedAt))}</span>}
           {Boolean(metadata.duration) && <span className="metadata-detail">{String(metadata.duration)} min</span>}
-          {Boolean(metadata.intensity) && <span className="status-badge">{formatLabel(String(metadata.intensity))}</span>}
+          {Boolean(metadata.intensity) && <span className="metadata-detail">{formatLabel(String(metadata.intensity))}</span>}
           {Boolean(metadata.distance) && (
             <span className="metadata-detail">
               {String(metadata.distance)} {String(metadata.distanceUnit || '')}
