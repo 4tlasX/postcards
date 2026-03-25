@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DisplayPost, Taxonomy } from '@/lib/db';
 import { TopicIcon } from '@/components/topic';
-import { Textarea, Button } from '@/components/form';
+import { Textarea, Button, LinkedItems } from '@/components/form';
+import type { LinkerPost } from '@/components/form';
 import { hasSpecializedFields, getDefaultMetadata } from '@/lib/taxonomies';
 import {
   MetadataFieldSection,
@@ -40,6 +41,13 @@ interface EditablePostCardProps {
   onCancelEdit?: () => void;
   isNew?: boolean;
   onCancel?: () => void;
+  milestonePosts?: LinkerPost[];
+  goalPosts?: LinkerPost[];
+  taskPosts?: LinkerPost[];
+  milestonesForGoal?: Record<number, LinkerPost[]>;
+  tasksForMilestone?: Record<number, LinkerPost[]>;
+  onRelatedPostUpdate?: (postId: number, metadataUpdates: Record<string, unknown>) => void;
+  onUnlinkPost?: (targetPostId: number, arrayField: string, idToRemove: number) => void;
 }
 
 function extractMetadataForTaxonomy(
@@ -69,6 +77,13 @@ export function EditablePostCard({
   onCancelEdit,
   isNew = false,
   onCancel,
+  milestonePosts = [],
+  goalPosts = [],
+  taskPosts = [],
+  milestonesForGoal = {},
+  tasksForMilestone = {},
+  onRelatedPostUpdate,
+  onUnlinkPost,
 }: EditablePostCardProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedTaxonomy, setSelectedTaxonomy] = useState<Taxonomy | null>(taxonomy || null);
@@ -276,13 +291,13 @@ export function EditablePostCard({
 
           {/* Specialized metadata fields */}
           <MetadataFieldSection fieldType="task" selectedTaxonomyName={taxonomyName} title="Task Settings">
-            <TaskFields values={metadata as unknown as TaskMetadata} onChange={handleMetadataChange} />
+            <TaskFields values={metadata as unknown as TaskMetadata} onChange={handleMetadataChange} milestones={milestonePosts} />
           </MetadataFieldSection>
           <MetadataFieldSection fieldType="goal" selectedTaxonomyName={taxonomyName} title="Goal Settings">
             <GoalFields values={metadata as unknown as GoalMetadata} onChange={handleMetadataChange} />
           </MetadataFieldSection>
           <MetadataFieldSection fieldType="milestone" selectedTaxonomyName={taxonomyName} title="Milestone Settings">
-            <MilestoneFields values={metadata as unknown as MilestoneMetadata} onChange={handleMetadataChange} />
+            <MilestoneFields values={metadata as unknown as MilestoneMetadata} onChange={handleMetadataChange} goals={goalPosts} />
           </MetadataFieldSection>
           <MetadataFieldSection fieldType="event" selectedTaxonomyName={taxonomyName} title="Event Details">
             <EventFields values={metadata as unknown as EventMetadata} onChange={handleMetadataChange} />
@@ -327,7 +342,18 @@ export function EditablePostCard({
           {hasSpecialized && (
             <div className="post-view-specialized-metadata">
               <span className="post-view-metadata-label">{taxonomy.name} Details</span>
-              <SpecializedMetadataDisplay taxonomyName={taxonomy.name} metadata={postMetadata} />
+              <SpecializedMetadataDisplay
+                taxonomyName={taxonomy.name}
+                metadata={postMetadata}
+                postId={post.id}
+                milestonePosts={milestonePosts}
+                goalPosts={goalPosts}
+                taskPosts={taskPosts}
+                milestonesForGoal={milestonesForGoal}
+                tasksForMilestone={tasksForMilestone}
+                onRelatedPostUpdate={onRelatedPostUpdate}
+                onUnlinkPost={onUnlinkPost}
+              />
             </div>
           )}
 
@@ -371,23 +397,52 @@ function isSpecializedField(key: string, taxonomyName?: string): boolean {
 function SpecializedMetadataDisplay({
   taxonomyName,
   metadata,
+  postId,
+  milestonePosts = [],
+  goalPosts = [],
+  taskPosts = [],
+  milestonesForGoal = {},
+  tasksForMilestone = {},
+  onRelatedPostUpdate,
+  onUnlinkPost,
 }: {
   taxonomyName: string;
   metadata: Record<string, unknown>;
+  postId: number;
+  milestonePosts?: LinkerPost[];
+  goalPosts?: LinkerPost[];
+  taskPosts?: LinkerPost[];
+  milestonesForGoal?: Record<number, LinkerPost[]>;
+  tasksForMilestone?: Record<number, LinkerPost[]>;
+  onRelatedPostUpdate?: (postId: number, metadataUpdates: Record<string, unknown>) => void;
+  onUnlinkPost?: (targetPostId: number, arrayField: string, idToRemove: number) => void;
 }) {
   const name = taxonomyName.toLowerCase();
 
   switch (name) {
-    case 'task':
+    case 'task': {
+      const linkedMilestones = Array.isArray(metadata.milestoneIds)
+        ? milestonePosts.filter((p) => (metadata.milestoneIds as string[]).includes(String(p.id)))
+        : [];
       return (
         <div className="specialized-metadata task-metadata">
           {Boolean(metadata.isCompleted) && <span className="status-badge completed">Completed</span>}
           {Boolean(metadata.isInProgress) && <span className="status-badge in-progress">In Progress</span>}
           {Boolean(metadata.isAutoMigrating) && <span className="status-badge auto-migrate">Auto-migrate</span>}
+          {linkedMilestones.length > 0 && (
+            <div className="linked-posts">
+              <span className="linked-posts-label">Milestones:</span>
+              {linkedMilestones.map((m) => (
+                <span key={m.id} className="linked-post-badge">{m.content.length > 40 ? m.content.slice(0, 40) + '…' : m.content}</span>
+              ))}
+            </div>
+          )}
         </div>
       );
+    }
 
-    case 'goal':
+    case 'goal': {
+      const relatedMilestones = milestonesForGoal?.[postId] || [];
       return (
         <div className="specialized-metadata goal-metadata">
           {Boolean(metadata.type) && <span className="status-badge">{formatLabel(String(metadata.type))}</span>}
@@ -395,8 +450,59 @@ function SpecializedMetadataDisplay({
           {Boolean(metadata.targetDate) && (
             <span className="metadata-detail">Target: {formatDateValue(String(metadata.targetDate))}</span>
           )}
+          {relatedMilestones.length > 0 && (
+            <LinkedItems
+              items={relatedMilestones}
+              label="Milestones"
+              onToggleComplete={(id, completed) => {
+                onRelatedPostUpdate?.(id, {
+                  isCompleted: completed,
+                  completedAt: completed ? new Date().toISOString() : null,
+                });
+              }}
+              onRemove={(milestoneId) => {
+                onUnlinkPost?.(milestoneId, 'goalIds', postId);
+              }}
+            />
+          )}
         </div>
       );
+    }
+
+    case 'milestone': {
+      const linkedGoals = Array.isArray(metadata.goalIds)
+        ? goalPosts.filter((p) => (metadata.goalIds as string[]).includes(String(p.id)))
+        : [];
+      const relatedTasks = tasksForMilestone?.[postId] || [];
+      return (
+        <div className="specialized-metadata milestone-metadata">
+          {Boolean(metadata.isCompleted) && <span className="status-badge completed">Completed</span>}
+          {Boolean(metadata.completedAt) && (
+            <span className="metadata-detail">Completed on {formatDateValue(String(metadata.completedAt))}</span>
+          )}
+          {linkedGoals.length > 0 && (
+            <div className="linked-posts">
+              <span className="linked-posts-label">Goals:</span>
+              {linkedGoals.map((g) => (
+                <span key={g.id} className="linked-post-badge">{g.content.length > 40 ? g.content.slice(0, 40) + '…' : g.content}</span>
+              ))}
+            </div>
+          )}
+          {relatedTasks.length > 0 && (
+            <LinkedItems
+              items={relatedTasks}
+              label="Tasks"
+              onToggleComplete={(id, completed) => {
+                onRelatedPostUpdate?.(id, { isCompleted: completed });
+              }}
+              onRemove={(taskId) => {
+                onUnlinkPost?.(taskId, 'milestoneIds', postId);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
 
     case 'event':
     case 'meeting':

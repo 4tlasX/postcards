@@ -1,14 +1,16 @@
 'use client';
 
-import { FormGroup, FormRow, Checkbox } from '@/components/form';
+import { FormGroup, FormRow, Checkbox, PostLinker } from '@/components/form';
+import type { LinkerPost } from '@/components/form';
 import type { TaskMetadata } from '@/lib/taxonomies';
 
 export interface TaskFieldsProps {
   values: TaskMetadata;
   onChange: (field: keyof TaskMetadata, value: unknown) => void;
+  milestones?: LinkerPost[];
 }
 
-export function TaskFields({ values, onChange }: TaskFieldsProps) {
+export function TaskFields({ values, onChange, milestones = [] }: TaskFieldsProps) {
   return (
     <div className="metadata-fields task-fields">
       <FormRow>
@@ -43,6 +45,16 @@ export function TaskFields({ values, onChange }: TaskFieldsProps) {
               onChange={(e) => onChange('isAutoMigrating', e.target.checked)}
             />
           </div>
+        </FormGroup>
+      </FormRow>
+      <FormRow>
+        <FormGroup label="Linked Milestones">
+          <PostLinker
+            posts={milestones}
+            selectedIds={values.milestoneIds || []}
+            onChange={(ids) => onChange('milestoneIds', ids)}
+            emptyMessage="No milestones yet. Create a post with the Milestone topic first."
+          />
         </FormGroup>
       </FormRow>
     </div>

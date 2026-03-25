@@ -19,3 +19,4 @@ export { RangeInput, type RangeInputProps } from './RangeInput';
 export { Toggle, type ToggleProps } from './Toggle';
 export { ColorGrid, type ColorGridProps, type ColorOption } from './ColorGrid';
 export { ImageGrid, type ImageGridProps, type ImageOption } from './ImageGrid';
+export { PostLinker, type PostLinkerProps, LinkedItems, type LinkedItemsProps, type LinkerPost } from './PostLinker';

@@ -10,6 +10,7 @@ import { createTopicAction, updateTopicAction, deleteTopicAction } from './topic
 import { useUIStore } from '@/stores';
 import { useEncryption, UnlockDialog } from '@/components/encryption';
 import type { EncryptedPost, DecryptedPost } from '@/lib/crypto';
+import type { LinkerPost } from '@/components/form';
 
 interface PostCardFeedProps {
   initialPosts: SerializedPostWithEncryption[];
@@ -63,6 +64,7 @@ export function PostCardFeed({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const hasDecryptedRef = useRef(false);
 
   // Check if we need to show unlock dialog (encrypted posts exist but not unlocked)
   const hasEncryptedPosts = useMemo(() => {
@@ -71,7 +73,8 @@ export function PostCardFeed({
 
   // Decrypt posts when unlocked
   useEffect(() => {
-    if (isUnlocked && hasEncryptedPosts && !isDecrypting) {
+    if (isUnlocked && hasEncryptedPosts && !hasDecryptedRef.current) {
+      hasDecryptedRef.current = true;
       setIsDecrypting(true);
       const encryptedPosts = initialPosts.map(toEncryptedPost);
       decryptPosts(encryptedPosts)
@@ -83,7 +86,7 @@ export function PostCardFeed({
           setIsDecrypting(false);
         });
     }
-  }, [isUnlocked, hasEncryptedPosts, initialPosts, decryptPosts, isDecrypting]);
+  }, [isUnlocked, hasEncryptedPosts, initialPosts, decryptPosts]);
 
   // Show unlock dialog if needed
   useEffect(() => {
@@ -163,6 +166,64 @@ export function PostCardFeed({
       return true;
     });
   }, [posts, selectedTopicId, searchKeyword, searchDateFrom, searchDateTo]);
+
+  // Derive milestone, goal, and task posts for linking UI
+  const milestonePosts = useMemo(() => {
+    const milestoneTax = taxonomies.find((t) => t.name.toLowerCase() === 'milestone');
+    if (!milestoneTax) return [];
+    return posts
+      .filter((p) => (p.metadata?._taxonomyId as number | undefined) === milestoneTax.id)
+      .map((p) => ({ id: p.id, content: p.content || '', isCompleted: Boolean(p.metadata?.isCompleted) }));
+  }, [posts, taxonomies]);
+
+  const goalPosts = useMemo(() => {
+    const goalTax = taxonomies.find((t) => t.name.toLowerCase() === 'goal');
+    if (!goalTax) return [];
+    return posts
+      .filter((p) => (p.metadata?._taxonomyId as number | undefined) === goalTax.id)
+      .map((p) => ({ id: p.id, content: p.content || '', isCompleted: p.metadata?.status === 'completed' }));
+  }, [posts, taxonomies]);
+
+  const taskPosts = useMemo(() => {
+    const taskTax = taxonomies.find((t) => t.name.toLowerCase() === 'task');
+    if (!taskTax) return [];
+    return posts
+      .filter((p) => (p.metadata?._taxonomyId as number | undefined) === taskTax.id)
+      .map((p) => ({ id: p.id, content: p.content || '', isCompleted: Boolean(p.metadata?.isCompleted) }));
+  }, [posts, taxonomies]);
+
+  // Reverse lookups: milestones that reference each goal, tasks that reference each milestone
+  const milestonesForGoal = useMemo(() => {
+    const map: Record<number, LinkerPost[]> = {};
+    const milestoneTax = taxonomies.find((t) => t.name.toLowerCase() === 'milestone');
+    if (!milestoneTax) return map;
+    posts.forEach((p) => {
+      if ((p.metadata?._taxonomyId as number | undefined) !== milestoneTax.id) return;
+      const goalIds = (p.metadata?.goalIds as string[]) || [];
+      goalIds.forEach((gid) => {
+        const goalId = Number(gid);
+        if (!map[goalId]) map[goalId] = [];
+        map[goalId].push({ id: p.id, content: p.content || '', isCompleted: Boolean(p.metadata?.isCompleted) });
+      });
+    });
+    return map;
+  }, [posts, taxonomies]);
+
+  const tasksForMilestone = useMemo(() => {
+    const map: Record<number, LinkerPost[]> = {};
+    const taskTax = taxonomies.find((t) => t.name.toLowerCase() === 'task');
+    if (!taskTax) return map;
+    posts.forEach((p) => {
+      if ((p.metadata?._taxonomyId as number | undefined) !== taskTax.id) return;
+      const milestoneIds = (p.metadata?.milestoneIds as string[]) || [];
+      milestoneIds.forEach((mid) => {
+        const milestoneId = Number(mid);
+        if (!map[milestoneId]) map[milestoneId] = [];
+        map[milestoneId].push({ id: p.id, content: p.content || '', isCompleted: Boolean(p.metadata?.isCompleted) });
+      });
+    });
+    return map;
+  }, [posts, taxonomies]);
 
   // Calculate post counts per topic
   const postCounts = useMemo(() => {
@@ -319,6 +380,43 @@ export function PostCardFeed({
     setEditingPostId(null);
   };
 
+  // Handle updating a related post's metadata (mark complete, unlink)
+  const handleRelatedPostUpdate = useCallback(async (postId: number, metadataUpdates: Record<string, unknown>) => {
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+
+    const updatedMetadata = { ...post.metadata, ...metadataUpdates };
+    const formData = new FormData();
+    formData.set('id', String(postId));
+    formData.set('content', post.content || '');
+    formData.set('metadata', JSON.stringify(updatedMetadata));
+
+    const result = await updatePostAction(formData);
+    if (result.success && result.post) {
+      setPosts((prev) => prev.map((p) => (p.id === postId ? result.post! : p)));
+    }
+  }, [posts]);
+
+  // Handle unlinking: remove an ID from an array field in a related post's metadata
+  const handleUnlinkPost = useCallback(async (targetPostId: number, arrayField: string, idToRemove: number) => {
+    const post = posts.find((p) => p.id === targetPostId);
+    if (!post) return;
+
+    const currentArray = (post.metadata?.[arrayField] as string[]) || [];
+    const updatedArray = currentArray.filter((id) => String(id) !== String(idToRemove));
+    const updatedMetadata = { ...post.metadata, [arrayField]: updatedArray };
+
+    const formData = new FormData();
+    formData.set('id', String(targetPostId));
+    formData.set('content', post.content || '');
+    formData.set('metadata', JSON.stringify(updatedMetadata));
+
+    const result = await updatePostAction(formData);
+    if (result.success && result.post) {
+      setPosts((prev) => prev.map((p) => (p.id === targetPostId ? result.post! : p)));
+    }
+  }, [posts]);
+
   // Topic sidebar handlers
   const handleCreateTopic = async (formData: FormData) => {
     const result = await createTopicAction(formData);
@@ -406,6 +504,13 @@ export function PostCardFeed({
               onSave={handleCreateSave}
               onDelete={() => {}}
               onCancel={handleCreateCancel}
+              milestonePosts={milestonePosts}
+              goalPosts={goalPosts}
+              taskPosts={taskPosts}
+              milestonesForGoal={milestonesForGoal}
+              tasksForMilestone={tasksForMilestone}
+              onRelatedPostUpdate={handleRelatedPostUpdate}
+              onUnlinkPost={handleUnlinkPost}
             />
           </div>
         )}
@@ -425,6 +530,13 @@ export function PostCardFeed({
               onSave={handleSave}
               onDelete={handleDelete}
               onCancelEdit={() => setEditingPostId(null)}
+              milestonePosts={milestonePosts}
+              goalPosts={goalPosts}
+              taskPosts={taskPosts}
+              milestonesForGoal={milestonesForGoal}
+              tasksForMilestone={tasksForMilestone}
+              onRelatedPostUpdate={handleRelatedPostUpdate}
+              onUnlinkPost={handleUnlinkPost}
             />
           </div>
         ))}
