@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Montserrat } from 'next/font/google'
 import { AuthProvider } from '@/components/auth'
 import { EncryptionProviderWrapper } from '@/components/encryption'
+import { ThemeProvider } from '@/components/theme'
 import './globals.css'
 
 const montserrat = Montserrat({
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body>
         <EncryptionProviderWrapper>
           <AuthProvider>
-            {children}
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
           </AuthProvider>
         </EncryptionProviderWrapper>
       </body>

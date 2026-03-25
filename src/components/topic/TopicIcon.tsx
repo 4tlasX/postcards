@@ -12,15 +12,12 @@ const sizeMap = {
   lg: 24,
 };
 
-// Topic icon color
-const ICON_COLOR = '#b0bec5';
-
 export function TopicIcon({ icon, size = 'md', className = '' }: TopicIconProps) {
   const iconDef = icon ? getIconDefinition(icon) : null;
   const pixelSize = sizeMap[size];
   const classes = ['topic-icon', className].filter(Boolean).join(' ');
 
-  // If no icon or invalid icon name, show accent-colored dot fallback
+  // If no icon or invalid icon name, show dot fallback
   if (!iconDef) {
     return (
       <span
@@ -30,7 +27,7 @@ export function TopicIcon({ icon, size = 'md', className = '' }: TopicIconProps)
           width: pixelSize * 0.5,
           height: pixelSize * 0.5,
           borderRadius: '50%',
-          backgroundColor: ICON_COLOR,
+          backgroundColor: 'currentColor',
         }}
         role="img"
         aria-label="topic indicator"
@@ -44,7 +41,7 @@ export function TopicIcon({ icon, size = 'md', className = '' }: TopicIconProps)
       width={pixelSize}
       height={pixelSize}
       viewBox={iconDef.viewBox}
-      fill={ICON_COLOR}
+      fill="currentColor"
       role="img"
       aria-label="topic icon"
     >

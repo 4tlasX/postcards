@@ -16,6 +16,7 @@ import {
   updateTimezoneAction,
   updateAccentColorAction,
   updateBackgroundImageAction,
+  updateThemeModeAction,
   toggleFeatureAction,
   seedDefaultTopicsAction,
   signOutAction,
@@ -43,12 +44,14 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   // Use local state for visual settings (CSS handles the actual display)
   const [accentColor, setAccentColor] = useState(initialSettings.accentColor);
   const [backgroundImage, setBackgroundImage] = useState(initialSettings.backgroundImage);
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(initialSettings.themeMode);
 
   // Combine into object for easy access
   const userSettings = {
     timezone,
     accentColor,
     backgroundImage,
+    themeMode,
     foodEnabled,
     medicationEnabled,
     goalsEnabled,
@@ -63,8 +66,10 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   // Refs for debouncing server actions
   const accentColorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const backgroundImageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const themeModeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingAccentColorRef = useRef<string | null>(null);
   const pendingBackgroundImageRef = useRef<string | null>(null);
+  const pendingThemeModeRef = useRef<'dark' | 'light' | null>(null);
 
   // Initialize store with server-fetched settings and apply CSS variables
   useEffect(() => {
@@ -72,17 +77,26 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
 
     // Apply initial CSS variables
     if (initialSettings.accentColor) {
+      // Set base color for light theme to reference
+      document.documentElement.style.setProperty('--accent-color-base', initialSettings.accentColor);
       document.documentElement.style.setProperty('--accent-color', initialSettings.accentColor);
       document.documentElement.style.setProperty('--accent-color-hover', adjustBrightness(initialSettings.accentColor, 20));
     }
     if (initialSettings.backgroundImage) {
       document.documentElement.style.setProperty('--background-image', `url(${initialSettings.backgroundImage})`);
     }
+    // Apply initial theme mode
+    if (initialSettings.themeMode === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
 
     // Cleanup timeouts on unmount
     return () => {
       if (accentColorTimeoutRef.current) clearTimeout(accentColorTimeoutRef.current);
       if (backgroundImageTimeoutRef.current) clearTimeout(backgroundImageTimeoutRef.current);
+      if (themeModeTimeoutRef.current) clearTimeout(themeModeTimeoutRef.current);
     };
   }, [initialSettings, setSettings]);
 
@@ -104,6 +118,8 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
 
   const handleAccentColorChange = (color: string) => {
     // Update CSS variables immediately
+    // Set base color for light theme to reference
+    document.documentElement.style.setProperty('--accent-color-base', color);
     document.documentElement.style.setProperty('--accent-color', color);
     document.documentElement.style.setProperty('--accent-color-hover', adjustBrightness(color, 20));
 
@@ -161,6 +177,34 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       const imageToSave = pendingBackgroundImageRef.current;
       if (imageToSave !== null) {
         await updateBackgroundImageAction(imageToSave);
+      }
+    }, 500);
+  };
+
+  const handleThemeModeChange = (mode: 'dark' | 'light') => {
+    // Update body class immediately
+    if (mode === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+
+    // Update local state
+    setThemeMode(mode);
+
+    // Store the pending value for debounced save
+    pendingThemeModeRef.current = mode;
+
+    // Clear any existing timeout
+    if (themeModeTimeoutRef.current) {
+      clearTimeout(themeModeTimeoutRef.current);
+    }
+
+    // Debounce server action - wait 500ms before saving
+    themeModeTimeoutRef.current = setTimeout(async () => {
+      const modeToSave = pendingThemeModeRef.current;
+      if (modeToSave !== null) {
+        await updateThemeModeAction(modeToSave);
       }
     }, 500);
   };
@@ -237,16 +281,14 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       {/* Account */}
       <Card>
         <CardTitle>Account</CardTitle>
-        <div className="card-body">
-          <div className="form-row">
-            <span className="text-muted">Email:</span> {userEmail}
-          </div>
-          {userName && (
-            <div className="form-row">
-              <span className="text-muted">Username:</span> {userName}
-            </div>
-          )}
-        </div>
+        <FormGroup label="Email">
+          <span className="card-body">{userEmail}</span>
+        </FormGroup>
+        {userName && (
+          <FormGroup label="Username">
+            <span className="card-body">{userName}</span>
+          </FormGroup>
+        )}
       </Card>
 
       {/* Preferences */}
@@ -268,6 +310,27 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
       {/* Theme */}
       <Card>
         <CardTitle>Theme</CardTitle>
+        <FormGroup label="Mode">
+          <div className="theme-mode-toggle">
+            <button
+              type="button"
+              className={`theme-mode-btn ${userSettings.themeMode === 'dark' ? 'active' : ''}`}
+              onClick={() => handleThemeModeChange('dark')}
+              disabled={isPending}
+            >
+              Dark
+            </button>
+            <button
+              type="button"
+              className={`theme-mode-btn ${userSettings.themeMode === 'light' ? 'active' : ''}`}
+              onClick={() => handleThemeModeChange('light')}
+              disabled={isPending}
+            >
+              Light
+            </button>
+          </div>
+        </FormGroup>
+
         <FormGroup label="Accent Color">
           <ColorGrid
             options={accentColorOptions}

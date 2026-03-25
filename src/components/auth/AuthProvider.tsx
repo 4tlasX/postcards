@@ -42,10 +42,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Valid session - set auth state
+      // Valid session - set auth state with theme mode
       useAuthStore.getState().setAuth({
         userName: result.data.userName,
         userEmail: result.data.userEmail,
+        userSettings: {
+          themeMode: result.data.themeMode,
+        },
       });
 
       setAuthState('authenticated');

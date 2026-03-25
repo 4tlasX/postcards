@@ -129,6 +129,27 @@ export async function updateBackgroundImageAction(
 }
 
 /**
+ * Update theme mode setting (dark/light)
+ */
+export async function updateThemeModeAction(
+  mode: 'dark' | 'light'
+): Promise<{ error?: string }> {
+  const session = await getServerSession();
+  if (!session) {
+    return { error: 'Not authenticated' };
+  }
+
+  try {
+    await upsertSetting(session.schemaName, 'themeMode', mode);
+    // No revalidatePath - we use optimistic updates for instant feedback
+    return {};
+  } catch (error) {
+    console.error('Failed to update theme mode:', error);
+    return { error: 'Failed to update theme mode' };
+  }
+}
+
+/**
  * Toggle a feature flag and create associated taxonomy if enabling
  */
 export async function toggleFeatureAction(

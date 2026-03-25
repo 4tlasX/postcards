@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, verifyPassword, validatePassword, validateUsername, validateEmail } from '@/lib/auth';
 import { generateSchemaName, createTenantSchema } from '@/lib/db';
+import { getTypedSetting } from '@/lib/settings';
 
 const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
 const SESSION_COOKIE_NAME = 'chronicles_session';
@@ -321,6 +322,7 @@ export async function validateSessionAction(): Promise<{
   data?: {
     userName: string;
     userEmail: string;
+    themeMode?: 'dark' | 'light';
   };
 }> {
   const token = await getSessionToken();
@@ -336,6 +338,7 @@ export async function validateSessionAction(): Promise<{
         select: {
           username: true,
           email: true,
+          tenantSchemaName: true,
         },
       },
     },
@@ -357,11 +360,15 @@ export async function validateSessionAction(): Promise<{
   const newExpiresAt = await extendSession(token);
   await setSessionCookie(token, newExpiresAt);
 
+  // Get theme mode setting
+  const themeMode = await getTypedSetting(session.account.tenantSchemaName, 'themeMode');
+
   return {
     valid: true,
     data: {
       userName: session.account.username,
       userEmail: session.account.email,
+      themeMode,
     },
   };
 }

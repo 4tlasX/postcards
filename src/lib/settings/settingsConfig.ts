@@ -19,6 +19,7 @@ export interface PreferenceSettings {
   timezone: string;
   accentColor: string;
   backgroundImage: string;
+  themeMode: 'dark' | 'light';
 }
 
 export type AllSettings = FeatureSettings & PreferenceSettings;
@@ -43,6 +44,7 @@ export const DEFAULT_SETTINGS: AllSettings = {
   timezone: 'UTC',
   accentColor: '#80cbc4', // Material Design Teal 200 (blue-green)
   backgroundImage: '/backgrounds/adam-kool-ndN00KmbJ1c-unsplash.jpg', // Waterfall
+  themeMode: 'dark',
 };
 
 // =============================================================================
