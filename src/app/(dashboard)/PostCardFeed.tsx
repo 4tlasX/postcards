@@ -96,10 +96,10 @@ export function PostCardFeed({
   }, [encryptionEnabled, hasEncryptedPosts, isUnlocked]);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const lastTriggerRef = useRef(0);
 
   // Listen for create post trigger from header button
   const createPostTrigger = useUIStore((state) => state.createPostTrigger);
+  const lastTriggerRef = useRef(createPostTrigger);
   const selectedTopicId = useUIStore((state) => state.selectedTopicId);
 
   // Sidebar states for content displacement
