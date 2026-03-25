@@ -11,8 +11,12 @@ export function Sidebar() {
   const isTopicSidebarOpen = useUIStore((state) => state.isTopicSidebarOpen);
   const toggleSearchSidebar = useUIStore((state) => state.toggleSearchSidebar);
   const isSearchSidebarOpen = useUIStore((state) => state.isSearchSidebarOpen);
+  const toggleViewsSidebar = useUIStore((state) => state.toggleViewsSidebar);
+  const isViewsSidebarOpen = useUIStore((state) => state.isViewsSidebarOpen);
 
   const isPostsActive = pathname === '/' || pathname.startsWith('/posts');
+  const isOnViewPage = pathname.startsWith('/goals') || pathname.startsWith('/milestones') || pathname.startsWith('/tasks');
+  const isViewsActive = isViewsSidebarOpen || isOnViewPage;
 
   return (
     <aside className="sidebar">
@@ -32,29 +36,48 @@ export function Sidebar() {
           </svg>
         </Link>
 
-        {/* Search button */}
-        <button
-          type="button"
-          className={`sidebar-nav-item ${isSearchSidebarOpen ? 'sidebar-nav-item-active' : ''}`}
-          onClick={toggleSearchSidebar}
-          title="Search"
-        >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-        </button>
+        {/* Search button - only on posts page */}
+        {!isOnViewPage && (
+          <button
+            type="button"
+            className={`sidebar-nav-item ${isSearchSidebarOpen ? 'sidebar-nav-item-active' : ''}`}
+            onClick={toggleSearchSidebar}
+            title="Search"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+        )}
 
-        {/* Topics button - triggers sidebar instead of navigation */}
+        {/* Topics button - only on posts page */}
+        {!isOnViewPage && (
+          <button
+            type="button"
+            className={`sidebar-nav-item ${isTopicSidebarOpen ? 'sidebar-nav-item-active' : ''}`}
+            onClick={toggleTopicSidebar}
+            title="Topics"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+          </button>
+        )}
+
+        {/* Views button */}
         <button
           type="button"
-          className={`sidebar-nav-item ${isTopicSidebarOpen ? 'sidebar-nav-item-active' : ''}`}
-          onClick={toggleTopicSidebar}
-          title="Topics"
+          className={`sidebar-nav-item ${isViewsActive ? 'sidebar-nav-item-active' : ''}`}
+          onClick={toggleViewsSidebar}
+          title="Views"
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
           </svg>
         </button>
 

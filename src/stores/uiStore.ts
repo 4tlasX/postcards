@@ -37,6 +37,12 @@ interface UIState {
   searchDateTo: string;
   setSearchDateTo: (date: string) => void;
   clearSearchFilters: () => void;
+
+  // Views sidebar state
+  isViewsSidebarOpen: boolean;
+  openViewsSidebar: () => void;
+  closeViewsSidebar: () => void;
+  toggleViewsSidebar: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -45,11 +51,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   // Topic sidebar
   isTopicSidebarOpen: false,
-  openTopicSidebar: () => set({ isTopicSidebarOpen: true, isSearchSidebarOpen: false }),
+  openTopicSidebar: () => set({ isTopicSidebarOpen: true, isSearchSidebarOpen: false, isViewsSidebarOpen: false }),
   closeTopicSidebar: () => set({ isTopicSidebarOpen: false, editingTopicId: null, isCreatingTopic: false }),
   toggleTopicSidebar: () => set((state) => ({
     isTopicSidebarOpen: !state.isTopicSidebarOpen,
     isSearchSidebarOpen: false,
+    isViewsSidebarOpen: false,
     editingTopicId: state.isTopicSidebarOpen ? null : state.editingTopicId,
     isCreatingTopic: state.isTopicSidebarOpen ? false : state.isCreatingTopic,
   })),
@@ -68,11 +75,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   // Search sidebar
   isSearchSidebarOpen: false,
-  openSearchSidebar: () => set({ isSearchSidebarOpen: true, isTopicSidebarOpen: false }),
+  openSearchSidebar: () => set({ isSearchSidebarOpen: true, isTopicSidebarOpen: false, isViewsSidebarOpen: false }),
   closeSearchSidebar: () => set({ isSearchSidebarOpen: false }),
   toggleSearchSidebar: () => set((state) => ({
     isSearchSidebarOpen: !state.isSearchSidebarOpen,
     isTopicSidebarOpen: false,
+    isViewsSidebarOpen: false,
   })),
 
   // Search filters
@@ -83,4 +91,14 @@ export const useUIStore = create<UIState>((set) => ({
   searchDateTo: '',
   setSearchDateTo: (date) => set({ searchDateTo: date }),
   clearSearchFilters: () => set({ searchKeyword: '', searchDateFrom: '', searchDateTo: '' }),
+
+  // Views sidebar
+  isViewsSidebarOpen: false,
+  openViewsSidebar: () => set({ isViewsSidebarOpen: true, isTopicSidebarOpen: false, isSearchSidebarOpen: false }),
+  closeViewsSidebar: () => set({ isViewsSidebarOpen: false }),
+  toggleViewsSidebar: () => set((state) => ({
+    isViewsSidebarOpen: !state.isViewsSidebarOpen,
+    isTopicSidebarOpen: false,
+    isSearchSidebarOpen: false,
+  })),
 }));

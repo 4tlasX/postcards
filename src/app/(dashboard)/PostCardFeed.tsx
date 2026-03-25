@@ -105,7 +105,8 @@ export function PostCardFeed({
   // Sidebar states for content displacement
   const isTopicSidebarOpen = useUIStore((state) => state.isTopicSidebarOpen);
   const isSearchSidebarOpen = useUIStore((state) => state.isSearchSidebarOpen);
-  const isSidebarOpen = isTopicSidebarOpen || isSearchSidebarOpen;
+  const isViewsSidebarOpen = useUIStore((state) => state.isViewsSidebarOpen);
+  const isSidebarOpen = isTopicSidebarOpen || isSearchSidebarOpen || isViewsSidebarOpen;
 
   // Search filters
   const searchKeyword = useUIStore((state) => state.searchKeyword);
