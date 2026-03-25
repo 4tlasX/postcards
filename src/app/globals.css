@@ -125,7 +125,7 @@ body:has(.post-inline-edit .post-form)::before {
   background: var(--theme-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--theme-border);
+  border-bottom: 1px solid #253448;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1283,7 +1283,7 @@ body:has(.post-inline-edit .post-form)::before {
 .linked-items {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--body-copy-color) 50%, transparent);
+  border-top: 1px solid #253448;
   width: 100%;
 }
 
@@ -1801,7 +1801,7 @@ body:has(.post-inline-edit .post-form)::before {
   gap: 0.5rem;
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid #253448;
 }
 
 .post-view-edit-delete-btn {
@@ -2010,7 +2010,7 @@ body:has(.post-inline-edit .post-form)::before {
 
 .post-view-header {
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid #253448;
 }
 
 .post-view-header-row {
@@ -3033,7 +3033,7 @@ body:has(.post-inline-edit .post-form)::before {
 
 /* View Card */
 .view-card {
-  border: 1px solid color-mix(in srgb, var(--body-copy-color) 20%, transparent);
+  border: 1px solid #253448;
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   color: var(--body-copy-color);
@@ -3043,7 +3043,7 @@ body:has(.post-inline-edit .post-form)::before {
 
 .view-card:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  border-color: color-mix(in srgb, var(--body-copy-color) 35%, transparent);
+  border-color: #253448;
 }
 
 .view-card-completed {
